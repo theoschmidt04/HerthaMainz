@@ -1,0 +1,93 @@
+---
+title: "Hertha-Mainz"
+author: "Theo Schmidt"
+date: "2024-04-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+install.packages("ggsoccer")
+library(ggsoccer)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(jsonlite)
+
+# Load the JSON data
+Hertha_Mainz <- fromJSON("BSCMainz.json")
+
+# Convert location_x and location_y to numeric
+Hertha_Mainz$location_x <- sapply(Hertha_Mainz$location, function(loc) loc[1])
+Hertha_Mainz$location_y <- sapply(Hertha_Mainz$location, function(loc) loc[2])
+
+# Convert to numeric
+Hertha_Mainz$location_x <- as.numeric(Hertha_Mainz$location_x)
+Hertha_Mainz$location_y <- as.numeric(Hertha_Mainz$location_y)
+
+
+# Filter out NA values in the location column for period one
+period_one <- subset(Hertha_Mainz, period == 1 & !is.na(location_x) & !is.na(location_y))
+
+# Create separate heatmaps for each team's actions in period one
+ggplot(period_one, aes(x = location_y, y = location_x)) +  
+  geom_bin2d() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Heatmap of Actions in Period One", x = "Y Coordinate", y = "X Coordinate") +  
+  theme_pitch(aspect_ratio = 120/80) +  
+  facet_wrap(~ team$name)
+```
+```{r}
+library(ggplot2)
+library(ggsoccer)
+library(jsonlite)
+
+Hertha_Mainz <- fromJSON("BSCMainz.json")
+
+Hertha_Mainz$location_x <- sapply(Hertha_Mainz$location, function(loc) as.numeric(unlist(loc))[1])
+Hertha_Mainz$location_y <- sapply(Hertha_Mainz$location, function(loc) as.numeric(unlist(loc))[2])
+
+Hertha_Mainz$location_x <- as.numeric(Hertha_Mainz$location_x)
+Hertha_Mainz$location_y <- as.numeric(Hertha_Mainz$location_y)
+
+period_two <- subset(Hertha_Mainz, period == 1)
+
+ggplot(period_two, aes(x = location_y, y = location_x)) + 
+  geom_bin2d() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "First Half Actions Heatmap", x = "Y Coordinate", y = "X Coordinate") + 
+  theme_pitch(aspect_ratio = 120/80) + 
+  geom_hline(yintercept = c(40, 80), linetype = "dashed", color = "black") + 
+  geom_vline(xintercept = 40, linetype = "dashed", color = "black") +
+  facet_wrap(~ team$name)
+```
+
+
+```{r}
+library(ggplot2)
+Hertha_Mainz
+actions_per_minute <- table(Hertha_Mainz$minute)
+
+actions_df <- data.frame(minutes = as.numeric(names(actions_per_minute)),
+                         actions = as.numeric(actions_per_minute))
+
+ggplot(actions_df, aes(x = minutes, y = actions)) +
+  geom_rect(aes(xmin = 34, xmax = 54, ymin = -Inf, ymax = Inf), fill = "lightblue", alpha = 0.3) +
+  geom_rect(aes(xmin = 54, xmax = max(actions_df$minutes), ymin = -Inf, ymax = Inf), fill = "blue", alpha = 0.3) +
+  geom_line() +
+  geom_point() +
+  geom_vline(xintercept = c(34, 54), color = "black", linetype = "dashed") +
+  labs(title = "Timeline of Actions in Hertha-Mainz (Home Leg)",
+       x = "Minutes",
+       y = "Number of Actions") +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE) +
+  theme_bw()
+```
+
+
